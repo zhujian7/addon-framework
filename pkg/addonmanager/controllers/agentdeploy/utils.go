@@ -15,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 	"open-cluster-management.io/addon-framework/pkg/addonmanager/constants"
+	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	workv1client "open-cluster-management.io/api/client/work/clientset/versioned"
 	worklister "open-cluster-management.io/api/client/work/listers/work/v1"
 	workapiv1 "open-cluster-management.io/api/work/v1"
@@ -43,6 +44,13 @@ func removeFinalizer(existingFinalizers []string, finalizer string) []string {
 	return rst
 }
 
+func addFinalizer(existingFinalizers []string, finalizer string) []string {
+	if existingFinalizers != nil {
+		return append(existingFinalizers, finalizer)
+	}
+	return []string{finalizer}
+}
+
 func manifestsEqual(new, old []workapiv1.Manifest) bool {
 	if len(new) != len(old) {
 		return false
@@ -69,17 +77,19 @@ func manifestWorkSpecEqual(new, old workapiv1.ManifestWorkSpec) bool {
 	return true
 }
 
-func newManifestWork(workName, addonName, clusterName string, manifests []workapiv1.Manifest) *workapiv1.ManifestWork {
+func newManifestWork(addonNamespace, addonName, clusterName string, manifests []workapiv1.Manifest,
+	manifestWorkNameFunc func(addonNamespace, addonName string) string) *workapiv1.ManifestWork {
 	if len(manifests) == 0 {
 		return nil
 	}
 
 	return &workapiv1.ManifestWork{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      workName,
+			Name:      manifestWorkNameFunc(addonNamespace, addonName),
 			Namespace: clusterName,
 			Labels: map[string]string{
-				constants.AddonLabel: addonName,
+				constants.AddonLabel:          addonName,
+				constants.AddonNamespaceLabel: addonNamespace,
 			},
 		},
 		Spec: workapiv1.ManifestWorkSpec{
@@ -93,7 +103,7 @@ func newManifestWork(workName, addonName, clusterName string, manifests []workap
 // isPreDeleteHookObject check the object is a pre-delete hook resources.
 // currently, we only support job and pod as hook resources.
 // we use WellKnownStatus here to get the job/pad status fields to check if the job/pod is completed.
-func isPreDeleteHookObject(obj runtime.Object) (bool, *workapiv1.ManifestConfigOption) {
+func (b *manifestWorkBuiler) isPreDeleteHookObject(obj runtime.Object) (bool, *workapiv1.ManifestConfigOption) {
 	var resource string
 	gvk := obj.GetObjectKind().GroupVersionKind()
 	switch gvk.Kind {
@@ -128,34 +138,181 @@ func isPreDeleteHookObject(obj runtime.Object) (bool, *workapiv1.ManifestConfigO
 		},
 	}
 }
+func newManagedManifestWorkBuilder() *manifestWorkBuiler {
+	return &manifestWorkBuiler{
+		processor: &managedManifest{},
+	}
+}
 
-func buildManifestWorkFromObject(
-	cluster, addonName string,
+func newHostingManifestWorkBuilder() *manifestWorkBuiler {
+	return &manifestWorkBuiler{
+		processor: &hostingManifest{},
+	}
+}
+
+type manifestWorkBuiler struct {
+	processor manifestProcessor
+}
+
+type manifestProcessor interface {
+	deployable(installMode string, obj runtime.Object) (bool, error)
+	mutateManifest(installMode string, rawObject []byte) ([]byte, error)
+	manifestWorkName(addonNamespace, addonName string) string
+	preDeleteHookManifestWorkName(addonNamespace, addonName string) string
+}
+
+// hostingManifest process manifests which will be deployed on the hosting cluster
+type hostingManifest struct {
+}
+
+func (m *hostingManifest) deployable(installMode string, obj runtime.Object) (bool, error) {
+	accessor, err := meta.Accessor(obj)
+	if err != nil {
+		return false, nil
+	}
+
+	location, exist, err := constants.GetHostedManifestLocation(accessor.GetLabels())
+	if err != nil {
+		return false, err
+	}
+	if installMode != constants.InstallModeHosted {
+		return false, nil
+	}
+
+	if exist && location == constants.HostedManifestLocationHosting {
+		klog.V(4).Infof("will deploy the manifest %s/%s on the hosting cluster in Hosted mode",
+			accessor.GetNamespace(), accessor.GetName())
+		return true, nil
+	}
+
+	return false, nil
+}
+
+func (m *hostingManifest) mutateManifest(installMode string, rawObject []byte) ([]byte, error) {
+	return rawObject, nil
+}
+
+func (m *hostingManifest) manifestWorkName(addonNamespace, addonName string) string {
+	return constants.DeployHostingWorkName(addonNamespace, addonName)
+}
+
+func (m *hostingManifest) preDeleteHookManifestWorkName(addonNamespace, addonName string) string {
+	return fmt.Sprintf("%s-hosting-%s", preDeleteHookWorkName(addonName), addonNamespace)
+}
+
+// managedManifest process manifests which will be deployed on the managed cluster
+type managedManifest struct {
+}
+
+func (m *managedManifest) deployable(installMode string, obj runtime.Object) (bool, error) {
+	accessor, err := meta.Accessor(obj)
+	if err != nil {
+		return false, nil
+	}
+
+	location, exist, err := constants.GetHostedManifestLocation(accessor.GetLabels())
+	if err != nil {
+		return false, err
+	}
+
+	if installMode != constants.InstallModeHosted {
+		return true, nil
+	}
+
+	if !exist || location == constants.HostedManifestLocationManaged {
+		klog.V(4).Infof("will deploy the manifest %s/%s on the managed cluster in Hosted mode",
+			accessor.GetNamespace(), accessor.GetName())
+		return true, nil
+	}
+
+	return false, nil
+}
+
+func (m *managedManifest) mutateManifest(installMode string, rawObject []byte) ([]byte, error) {
+	unstructuredObj := &unstructured.Unstructured{}
+	err := unstructuredObj.UnmarshalJSON(rawObject)
+	if err != nil {
+		return nil, err
+	}
+
+	labels := unstructuredObj.GetLabels()
+	_, exist, err := constants.GetHostedManifestLocation(labels)
+	if err != nil {
+		return nil, err
+	}
+	if installMode == constants.InstallModeHosted && !exist {
+		// inject the default value for the Hosted mode
+		if labels == nil {
+			labels = make(map[string]string)
+		}
+		labels[constants.HostedManifestLocationLabel] = constants.HostedManifestLocationManaged
+		unstructuredObj.SetLabels(labels)
+		rawObject, err = unstructuredObj.MarshalJSON()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return rawObject, nil
+}
+
+func (m *managedManifest) manifestWorkName(addonNamespace, addonName string) string {
+	return constants.DeployWorkName(addonName)
+}
+
+func (m *managedManifest) preDeleteHookManifestWorkName(addonNamespace, addonName string) string {
+	return preDeleteHookWorkName(addonName)
+}
+
+// buildManifestWorkFromObject returns the deploy manifestwork and preDelete manifestwork, if there is no manifest need
+// to deploy, will return nil.
+func (b *manifestWorkBuiler) buildManifestWorkFromObject(
+	manifestWorkNamespace string,
+	addon *addonapiv1alpha1.ManagedClusterAddOn,
 	objects []runtime.Object) (deployManifestWork, hookManifestWork *workapiv1.ManifestWork, err error) {
 	var deployManifests []workapiv1.Manifest
 	var hookManifests []workapiv1.Manifest
 	var manifestConfigs []workapiv1.ManifestConfigOption
+
+	addonName := addon.Name
+	installMode, _ := constants.GetHostedModeInfo(addon.GetAnnotations())
 
 	for _, object := range objects {
 		rawObject, err := runtime.Encode(unstructured.UnstructuredJSONScheme, object)
 		if err != nil {
 			return nil, nil, err
 		}
-		isHookObject, manifestConfig := isPreDeleteHookObject(object)
+
+		deployable, err := b.processor.deployable(installMode, object)
+		if err != nil {
+			return nil, nil, err
+		}
+		if !deployable {
+			continue
+		}
+
+		mutatedObject, err := b.processor.mutateManifest(installMode, rawObject)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		isHookObject, manifestConfig := b.isPreDeleteHookObject(object)
 		if isHookObject {
 			hookManifests = append(hookManifests, workapiv1.Manifest{
-				RawExtension: runtime.RawExtension{Raw: rawObject},
+				RawExtension: runtime.RawExtension{Raw: mutatedObject},
 			})
 			manifestConfigs = append(manifestConfigs, *manifestConfig)
 		} else {
 			deployManifests = append(deployManifests, workapiv1.Manifest{
-				RawExtension: runtime.RawExtension{Raw: rawObject},
+				RawExtension: runtime.RawExtension{Raw: mutatedObject},
 			})
 		}
 	}
 
-	deployManifestWork = newManifestWork(constants.DeployWorkName(addonName), addonName, cluster, deployManifests)
-	hookManifestWork = newManifestWork(preDeleteHookWorkName(addonName), addonName, cluster, hookManifests)
+	deployManifestWork = newManifestWork(addon.Namespace, addonName, manifestWorkNamespace,
+		deployManifests, b.processor.manifestWorkName)
+	hookManifestWork = newManifestWork(addon.Namespace, addonName, manifestWorkNamespace,
+		hookManifests, b.processor.preDeleteHookManifestWorkName)
 	if hookManifestWork != nil {
 		hookManifestWork.Spec.ManifestConfigs = manifestConfigs
 	}
@@ -221,6 +378,22 @@ func applyWork(
 		return updated, nil
 	}
 	return nil, err
+}
+
+func deleteWork(
+	ctx context.Context,
+	workClient workv1client.Interface,
+	namespace, name string) error {
+
+	err := workClient.WorkV1().ManifestWorks(namespace).Delete(ctx, name, metav1.DeleteOptions{})
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		return nil
+	}
+
+	return nil
 }
 
 func FindManifestValue(

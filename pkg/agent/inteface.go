@@ -24,7 +24,7 @@ type AgentAddon interface {
 	// here will be:
 	//   - the hosting namespace of the addon-agents.
 	//   - a deployment of the addon agents.
-	//   - the configurations (e.g. configmaps) mounted by the deployement.
+	//   - the configurations (e.g. configmaps) mounted by the deployment.
 	//   - the RBAC permission bond to the addon agents *in the managed cluster*. (the hub cluster's RBAC
 	//     setup shall be done at GetAgentAddonOptions below.)
 	// NB for dispatching namespaced resources, it's recommended to include the namespace in the list.

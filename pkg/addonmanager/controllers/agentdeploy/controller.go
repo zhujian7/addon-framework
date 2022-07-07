@@ -26,7 +26,7 @@ import (
 	workapiv1 "open-cluster-management.io/api/work/v1"
 )
 
-// managedClusterController reconciles instances of ManagedCluster on the hub.
+// addonDeployController deploy addon agent resources on the managed cluster.
 type addonDeployController struct {
 	workClient                workv1client.Interface
 	addonClient               addonv1alpha1client.Interface
@@ -161,7 +161,8 @@ func (c *addonDeployController) sync(ctx context.Context, syncCtx factory.SyncCo
 		return nil
 	}
 
-	work, _, err := buildManifestWorkFromObject(clusterName, addonName, objects)
+	work, _, err := newManagedManifestWorkBuilder().buildManifestWorkFromObject(
+		clusterName, managedClusterAddon, objects)
 	if err != nil {
 		meta.SetStatusCondition(&managedClusterAddonCopy.Status.Conditions, metav1.Condition{
 			Type:    constants.AddonManifestApplied,
@@ -174,9 +175,14 @@ func (c *addonDeployController) sync(ctx context.Context, syncCtx factory.SyncCo
 		}
 		return err
 	}
+	if work == nil {
+		klog.V(4).Infof("No resource needs to deploy on the managed cluster %q", key)
+		return nil
+	}
+
 	work.OwnerReferences = []metav1.OwnerReference{*owner}
 
-	c.setStatusFeedbackRule(work, agentAddon)
+	setStatusFeedbackRule(work, agentAddon)
 
 	// apply work
 	work, err = applyWork(ctx, c.workClient, c.workLister, c.cache, work)
@@ -213,7 +219,7 @@ func (c *addonDeployController) sync(ctx context.Context, syncCtx factory.SyncCo
 	return utils.PatchAddonCondition(ctx, c.addonClient, managedClusterAddonCopy, managedClusterAddon)
 }
 
-func (c *addonDeployController) setStatusFeedbackRule(work *workapiv1.ManifestWork, agentAddon agent.AgentAddon) {
+func setStatusFeedbackRule(work *workapiv1.ManifestWork, agentAddon agent.AgentAddon) {
 	if agentAddon.GetAgentAddonOptions().HealthProber == nil {
 		return
 	}
