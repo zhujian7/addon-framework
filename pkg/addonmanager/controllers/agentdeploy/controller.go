@@ -158,6 +158,7 @@ func (c *addonDeployController) sync(ctx context.Context, syncCtx factory.SyncCo
 		return err
 	}
 	if len(objects) == 0 {
+		// TODO: delete the old manifestwork
 		return nil
 	}
 

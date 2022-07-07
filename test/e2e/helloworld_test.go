@@ -8,9 +8,11 @@ import (
 	"github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/rand"
+	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 )
 
 const (
@@ -37,8 +39,24 @@ var _ = ginkgo.Describe("install/uninstall helloworld addons", func() {
 
 	ginkgo.It("Install/uninstall addon and make sure it is available", func() {
 		gomega.Eventually(func() error {
-			addon, err := hubAddOnClient.AddonV1alpha1().ManagedClusterAddOns(managedClusterName).Get(context.Background(), addonName, metav1.GetOptions{})
+			addon, err := hubAddOnClient.AddonV1alpha1().ManagedClusterAddOns(managedClusterName).Get(
+				context.Background(), addonName, metav1.GetOptions{})
 			if err != nil {
+				if errors.IsNotFound(err) {
+					_, cerr := hubAddOnClient.AddonV1alpha1().ManagedClusterAddOns(managedClusterName).Create(context.Background(),
+						&addonapiv1alpha1.ManagedClusterAddOn{
+							ObjectMeta: metav1.ObjectMeta{
+								Namespace: managedClusterName,
+								Name:      addonName,
+							},
+							Spec: addonapiv1alpha1.ManagedClusterAddOnSpec{
+								InstallNamespace: "default",
+							},
+						}, metav1.CreateOptions{})
+					if cerr != nil {
+						return cerr
+					}
+				}
 				return err
 			}
 

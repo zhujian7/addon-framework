@@ -110,6 +110,9 @@ func TestHostingReconcile(t *testing.T) {
 
 				update := actions[1].(clienttesting.UpdateActionImpl).Object
 				addOn = update.(*addonapiv1alpha1.ManagedClusterAddOn)
+				if len(addOn.Finalizers) != 1 {
+					t.Errorf("expected 1 finalizer, but got %v", len(addOn.Finalizers))
+				}
 				if !hasFinalizer(addOn.Finalizers, constants.HostingManifestFinalizer) {
 					t.Errorf("expected hosting manifest finalizer")
 				}

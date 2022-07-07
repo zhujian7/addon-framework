@@ -19,7 +19,6 @@ import (
 	"open-cluster-management.io/addon-framework/examples/helloworld"
 	"open-cluster-management.io/addon-framework/examples/helloworld/agent"
 	"open-cluster-management.io/addon-framework/pkg/addonfactory"
-	addonagent "open-cluster-management.io/addon-framework/pkg/agent"
 	"open-cluster-management.io/addon-framework/pkg/version"
 
 	utilrand "k8s.io/apimachinery/pkg/util/rand"
@@ -88,7 +87,7 @@ func runController(ctx context.Context, kubeConfig *rest.Config) error {
 	agentAddon, err := addonfactory.NewAgentAddonFactory(helloworld.AddonName, helloworld.FS, "manifests/templates").
 		WithGetValuesFuncs(helloworld.GetValues, addonfactory.GetValuesFromAddonAnnotation).
 		WithAgentRegistrationOption(registrationOption).
-		WithInstallStrategy(addonagent.InstallAllStrategy(agent.HelloworldAgentInstallationNamespace)).
+		// WithInstallStrategy(addonagent.InstallAllStrategy(agent.HelloworldAgentInstallationNamespace)).
 		BuildTemplateAgentAddon()
 	if err != nil {
 		klog.Errorf("failed to build agent %v", err)
