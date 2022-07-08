@@ -112,7 +112,6 @@ func NewAddonHostingDeployController(
 
 func (c *addonHostingDeployController) sync(ctx context.Context, syncCtx factory.SyncContext, key string) error {
 	klog.V(4).Infof("Reconciling addon hosting deploy %q", key)
-	klog.Infof("Reconciling addon hosting deploy %q", key)
 
 	clusterName, addonName, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
