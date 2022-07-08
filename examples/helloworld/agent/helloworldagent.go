@@ -69,15 +69,16 @@ func (o *AgentOptions) AddFlags(cmd *cobra.Command) {
 
 // RunAgent starts the controllers on agent to process work from hub.
 func (o *AgentOptions) RunAgent(ctx context.Context, kubeconfig *rest.Config) error {
-	// build kubeclient of managed cluster
-	spokeKubeClient, err := kubernetes.NewForConfig(kubeconfig)
+	// build managementKubeClient of the local cluster
+	managementKubeClient, err := kubernetes.NewForConfig(kubeconfig)
 	if err != nil {
 		return err
 	}
 
-	// var managedKubeClient kubernetes.Interface
+	spokeKubeClient := managementKubeClient
 	if len(o.ManagedKubeconfigFile) != 0 {
-		managedRestConfig, err := clientcmd.BuildConfigFromFlags("" /* leave masterurl as empty */, o.ManagedKubeconfigFile)
+		managedRestConfig, err := clientcmd.BuildConfigFromFlags("", /* leave masterurl as empty */
+			o.ManagedKubeconfigFile)
 		if err != nil {
 			return err
 		}
@@ -113,7 +114,7 @@ func (o *AgentOptions) RunAgent(ctx context.Context, kubeconfig *rest.Config) er
 	)
 	// create a lease updater
 	leaseUpdater := lease.NewLeaseUpdater(
-		spokeKubeClient,
+		managementKubeClient,
 		o.AddonName,
 		o.AddonNamespace,
 	)
