@@ -11,6 +11,9 @@ include $(addprefix ./vendor/github.com/openshift/build-machinery-go/make/, \
 	lib/tmp.mk \
 )
 
+export GOHOSTOS    ?=$(shell go env GOHOSTOS)
+export GOHOSTARCH  ?=$(shell go env GOHOSTARCH)
+
 # Tools for deploy
 KUBECONFIG ?= ./.kubeconfig
 KUBECTL?=kubectl
@@ -25,7 +28,7 @@ GO_BUILD_PACKAGES :=./examples/cmd/...
 IMAGE ?= helloworld-addon
 IMAGE_REGISTRY ?= quay.io/open-cluster-management
 IMAGE_TAG ?= latest
-EXAMPLE_IMAGE_NAME ?= $(IMAGE_REGISTRY)/$(IMAGE):$(IMAGE_TAG)
+export EXAMPLE_IMAGE_NAME ?= $(IMAGE_REGISTRY)/$(IMAGE):$(IMAGE_TAG)
 
 GIT_HOST ?= open-cluster-management.io
 BASE_DIR := $(shell basename $(PWD))
@@ -67,8 +70,8 @@ undeploy-example: ensure-kustomize
 build-e2e:
 	go test -c ./test/e2e
 
-test-e2e: build-e2e deploy-ocm deploy-example
-	./e2e.test -test.v -ginkgo.v
+test-e2e: build-e2e
+	./test/run-e2e-tests.sh
 
 # Ensure kustomize
 ensure-kustomize:
