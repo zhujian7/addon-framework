@@ -158,6 +158,9 @@ func (c *addonHostingDeployController) sync(ctx context.Context, syncCtx factory
 	// TODO: check whether the hosting cluster of the addon is the same hosting cluster of the klusterlet
 	hostingCluster, err := c.managedClusterLister.Get(hostingClusterName)
 	if errors.IsNotFound(err) {
+		if err := c.cleanup(ctx, managedClusterAddonCopy, ""); err != nil {
+			return err
+		}
 		meta.SetStatusCondition(&managedClusterAddonCopy.Status.Conditions, metav1.Condition{
 			Type:    constants.HostingClusterValidity,
 			Status:  metav1.ConditionFalse,
@@ -311,7 +314,7 @@ func (c *addonHostingDeployController) cleanup(
 	return err
 }
 
-// findHostingCluster try to get the hosting cluster name by the nanifestwork labels
+// findHostingCluster try to get the hosting cluster name by the manifestwork labels
 func (c *addonHostingDeployController) findHostingCluster(addonNamespace, addonName string) (string, error) {
 
 	mcs, err := c.managedClusterLister.List(labels.NewSelector())
