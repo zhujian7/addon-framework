@@ -83,13 +83,12 @@ func newManifestWork(addonNamespace, addonName, clusterName string, manifests []
 		return nil
 	}
 
-	return &workapiv1.ManifestWork{
+	work := &workapiv1.ManifestWork{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      manifestWorkNameFunc(addonNamespace, addonName),
 			Namespace: clusterName,
 			Labels: map[string]string{
-				constants.AddonLabel:          addonName,
-				constants.AddonNamespaceLabel: addonNamespace,
+				constants.AddonLabel: addonName,
 			},
 		},
 		Spec: workapiv1.ManifestWorkSpec{
@@ -98,6 +97,12 @@ func newManifestWork(addonNamespace, addonName, clusterName string, manifests []
 			},
 		},
 	}
+
+	// if the addon namespace is not equal with the manifestwork namespace(cluster name), add the addon namespace label
+	if addonNamespace != clusterName {
+		work.Labels[constants.AddonNamespaceLabel] = addonNamespace
+	}
+	return work
 }
 
 // isPreDeleteHookObject check the object is a pre-delete hook resources.
