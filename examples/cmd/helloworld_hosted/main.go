@@ -87,7 +87,7 @@ func runController(ctx context.Context, kubeConfig *rest.Config) error {
 	agentAddon, err := addonfactory.NewAgentAddonFactory(helloworld.AddonName, helloworld.FS, "manifests/templates").
 		WithGetValuesFuncs(helloworld.GetValues, addonfactory.GetValuesFromAddonAnnotation).
 		WithAgentRegistrationOption(registrationOption).
-		WithAgentHostedModeEnabledOption(true).
+		WithAgentHostedModeEnabledOption().
 		BuildTemplateAgentAddon()
 	if err != nil {
 		klog.Errorf("failed to build agent %v", err)

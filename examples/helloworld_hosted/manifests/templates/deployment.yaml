@@ -47,4 +47,3 @@ spec:
             mountPath: "/managed/config"
             readOnly: true
           {{- end }}
-

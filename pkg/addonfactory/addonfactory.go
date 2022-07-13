@@ -95,9 +95,9 @@ func (f *AgentAddonFactory) WithAgentHealthProber(prober *agent.HealthProber) *A
 	return f
 }
 
-// WithAgentHostedModeEnabledOption defines whether enable the agent hosted deploying mode.
-func (f *AgentAddonFactory) WithAgentHostedModeEnabledOption(option bool) *AgentAddonFactory {
-	f.agentAddonOptions.HostedModeEnabled = option
+// WithAgentHostedModeEnabledOption will enable the agent hosted deploying mode.
+func (f *AgentAddonFactory) WithAgentHostedModeEnabledOption() *AgentAddonFactory {
+	f.agentAddonOptions.HostedModeEnabled = true
 	return f
 }
 
