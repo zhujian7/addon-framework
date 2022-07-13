@@ -156,7 +156,6 @@ type manifestWorkBuiler struct {
 
 type manifestProcessor interface {
 	deployable(installMode string, obj runtime.Object) (bool, error)
-	mutateManifest(installMode string, rawObject []byte) ([]byte, error)
 	manifestWorkName(addonNamespace, addonName string) string
 	preDeleteHookManifestWorkName(addonNamespace, addonName string) string
 }
@@ -186,10 +185,6 @@ func (m *hostingManifest) deployable(installMode string, obj runtime.Object) (bo
 	}
 
 	return false, nil
-}
-
-func (m *hostingManifest) mutateManifest(installMode string, rawObject []byte) ([]byte, error) {
-	return rawObject, nil
 }
 
 func (m *hostingManifest) manifestWorkName(addonNamespace, addonName string) string {
@@ -228,34 +223,6 @@ func (m *managedManifest) deployable(installMode string, obj runtime.Object) (bo
 	return false, nil
 }
 
-func (m *managedManifest) mutateManifest(installMode string, rawObject []byte) ([]byte, error) {
-	unstructuredObj := &unstructured.Unstructured{}
-	err := unstructuredObj.UnmarshalJSON(rawObject)
-	if err != nil {
-		return nil, err
-	}
-
-	labels := unstructuredObj.GetLabels()
-	_, exist, err := constants.GetHostedManifestLocation(labels)
-	if err != nil {
-		return nil, err
-	}
-	if installMode == constants.InstallModeHosted && !exist {
-		// inject the default value for the Hosted mode
-		if labels == nil {
-			labels = make(map[string]string)
-		}
-		labels[constants.HostedManifestLocationLabelKey] = constants.HostedManifestLocationManagedLabelValue
-		unstructuredObj.SetLabels(labels)
-		rawObject, err = unstructuredObj.MarshalJSON()
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return rawObject, nil
-}
-
 func (m *managedManifest) manifestWorkName(addonNamespace, addonName string) string {
 	return constants.DeployWorkName(addonName)
 }
@@ -291,20 +258,15 @@ func (b *manifestWorkBuiler) buildManifestWorkFromObject(
 			continue
 		}
 
-		mutatedObject, err := b.processor.mutateManifest(installMode, rawObject)
-		if err != nil {
-			return nil, nil, err
-		}
-
 		isHookObject, manifestConfig := b.isPreDeleteHookObject(object)
 		if isHookObject {
 			hookManifests = append(hookManifests, workapiv1.Manifest{
-				RawExtension: runtime.RawExtension{Raw: mutatedObject},
+				RawExtension: runtime.RawExtension{Raw: rawObject},
 			})
 			manifestConfigs = append(manifestConfigs, *manifestConfig)
 		} else {
 			deployManifests = append(deployManifests, workapiv1.Manifest{
-				RawExtension: runtime.RawExtension{Raw: mutatedObject},
+				RawExtension: runtime.RawExtension{Raw: rawObject},
 			})
 		}
 	}
