@@ -132,34 +132,15 @@ func (a *TemplateAgentAddon) validateTemplateData(file string, data []byte) erro
 		return err
 	}
 
-	// There may be some manifests for hosting cluster only or for managed cluster only, we validate it twice,
-	// one assuming it is Hosted mode and the other assuming it is Default mode.
-	configValues[constants.InstallModeBuiltinValueKey] = constants.InstallModeDefault
-	defaultModeMissingKind := false
+	// There may be some manifests for hosting cluster only or for managed cluster only, so we ignore the missing kind
+	// error to bypass the empty file
 	raw := assets.MustCreateAssetFromTemplate(file, data, configValues).Data
 	_, _, err = a.decoder.Decode(raw, nil, nil)
 	if err != nil {
 		if !runtime.IsMissingKind(err) {
 			return err
 		}
-		defaultModeMissingKind = true
-		klog.V(4).Infof("Validate template %v in default mode, reason: %v", file, err)
-	}
-
-	configValues[constants.InstallModeBuiltinValueKey] = constants.InstallModeHosted
-	hostedModeMissingKind := false
-	raw = assets.MustCreateAssetFromTemplate(file, data, configValues).Data
-	_, _, err = a.decoder.Decode(raw, nil, nil)
-	if err != nil {
-		if !runtime.IsMissingKind(err) {
-			return err
-		}
-		hostedModeMissingKind = true
-		klog.V(4).Infof("Validate template %v in hosted mode, reason: %v", file, err)
-	}
-
-	if defaultModeMissingKind && hostedModeMissingKind {
-		return fmt.Errorf("template %v invalid in default and hosted mode, reason: %v", file, err)
+		klog.V(4).Infof("Validate template %v missing kind, reason: %v", file, err)
 	}
 
 	return nil
