@@ -95,6 +95,12 @@ func (f *AgentAddonFactory) WithAgentHealthProber(prober *agent.HealthProber) *A
 	return f
 }
 
+// WithAgentHostedModeEnabledOption defines whether enable the agent hosted deploying mode.
+func (f *AgentAddonFactory) WithAgentHostedModeEnabledOption(option bool) *AgentAddonFactory {
+	f.agentAddonOptions.HostedModeEnabled = option
+	return f
+}
+
 // WithTrimCRDDescription is to enable trim the description of CRDs in manifestWork.
 func (f *AgentAddonFactory) WithTrimCRDDescription() *AgentAddonFactory {
 	f.trimCRDDescription = true

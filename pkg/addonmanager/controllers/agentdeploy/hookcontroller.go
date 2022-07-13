@@ -155,8 +155,8 @@ func (c *addonHookDeployController) sync(ctx context.Context, syncCtx factory.Sy
 	}
 
 	// TODO: consider whether need to process the hosting cluster hooks
-	_, hookWork, err := newManagedManifestWorkBuilder().buildManifestWorkFromObject(
-		clusterName, managedClusterAddon, objects)
+	_, hookWork, err := newManagedManifestWorkBuilder(agentAddon.GetAgentAddonOptions().HostedModeEnabled).
+		buildManifestWorkFromObject(clusterName, managedClusterAddon, objects)
 	if err != nil {
 		meta.SetStatusCondition(&managedClusterAddonCopy.Status.Conditions, metav1.Condition{
 			Type:    constants.AddonManifestApplied,

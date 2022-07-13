@@ -125,6 +125,11 @@ func (c *addonHostingDeployController) sync(ctx context.Context, syncCtx factory
 		return nil
 	}
 
+	// Hosted mode is not enabled, will not deploy any resource on the hosting cluster
+	if !agentAddon.GetAgentAddonOptions().HostedModeEnabled {
+		return nil
+	}
+
 	// Get ManagedCluster
 	managedCluster, err := c.managedClusterLister.Get(clusterName)
 	if errors.IsNotFound(err) {
@@ -220,8 +225,8 @@ func (c *addonHostingDeployController) sync(ctx context.Context, syncCtx factory
 		return nil
 	}
 
-	work, _, err := newHostingManifestWorkBuilder().buildManifestWorkFromObject(
-		hostingClusterName, managedClusterAddon, objects)
+	work, _, err := newHostingManifestWorkBuilder(agentAddon.GetAgentAddonOptions().HostedModeEnabled).
+		buildManifestWorkFromObject(hostingClusterName, managedClusterAddon, objects)
 	if err != nil {
 		meta.SetStatusCondition(&managedClusterAddonCopy.Status.Conditions, metav1.Condition{
 			Type:    constants.AddonHostingManifestApplied,

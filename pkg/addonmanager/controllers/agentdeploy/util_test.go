@@ -25,7 +25,7 @@ func TestApplyWork(t *testing.T) {
 			Name:      "addon1",
 		},
 	}
-	work, _, _ := newManagedManifestWorkBuilder().buildManifestWorkFromObject("cluster1", managedClusterAddon,
+	work, _, _ := newManagedManifestWorkBuilder(false).buildManifestWorkFromObject("cluster1", managedClusterAddon,
 		[]runtime.Object{addontesting.NewUnstructured("batch/v1", "Job", "default", "test")})
 
 	_, err := applyWork(context.TODO(), fakeWorkClient, workInformerFactory.Work().V1().ManifestWorks().Lister(), cache, work)
@@ -48,7 +48,7 @@ func TestApplyWork(t *testing.T) {
 	addontesting.AssertNoActions(t, fakeWorkClient.Actions())
 
 	// Update work spec to update it
-	newWork, _, _ := newManagedManifestWorkBuilder().buildManifestWorkFromObject("cluster1", managedClusterAddon,
+	newWork, _, _ := newManagedManifestWorkBuilder(false).buildManifestWorkFromObject("cluster1", managedClusterAddon,
 		[]runtime.Object{addontesting.NewUnstructured("batch/v1", "Job", "default", "test")})
 	newWork.Spec.DeleteOption = &workapiv1.DeleteOption{PropagationPolicy: workapiv1.DeletePropagationPolicyTypeOrphan}
 	fakeWorkClient.ClearActions()

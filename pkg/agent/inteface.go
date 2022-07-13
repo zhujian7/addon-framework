@@ -58,6 +58,11 @@ type AgentAddonOptions struct {
 	// If nil, will be defaulted to "Lease" type.
 	// +optional
 	HealthProber *HealthProber
+
+	// HostedModeEnabled defines whether the Hosted deploying mode for the addon agent is enabled
+	// If not set, will be defaulted to false.
+	// +optional
+	HostedModeEnabled bool
 }
 
 type CSRSignerFunc func(csr *certificatesv1.CertificateSigningRequest) []byte

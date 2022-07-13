@@ -138,24 +138,27 @@ func (b *manifestWorkBuiler) isPreDeleteHookObject(obj runtime.Object) (bool, *w
 		},
 	}
 }
-func newManagedManifestWorkBuilder() *manifestWorkBuiler {
+func newManagedManifestWorkBuilder(hostedModeEnabled bool) *manifestWorkBuiler {
 	return &manifestWorkBuiler{
-		processor: &managedManifest{},
+		processor:         &managedManifest{},
+		hostedModeEnabled: hostedModeEnabled,
 	}
 }
 
-func newHostingManifestWorkBuilder() *manifestWorkBuiler {
+func newHostingManifestWorkBuilder(hostedModeEnabled bool) *manifestWorkBuiler {
 	return &manifestWorkBuiler{
-		processor: &hostingManifest{},
+		processor:         &hostingManifest{},
+		hostedModeEnabled: hostedModeEnabled,
 	}
 }
 
 type manifestWorkBuiler struct {
-	processor manifestProcessor
+	processor         manifestProcessor
+	hostedModeEnabled bool
 }
 
 type manifestProcessor interface {
-	deployable(installMode string, obj runtime.Object) (bool, error)
+	deployable(hostedModeEnabled bool, installMode string, obj runtime.Object) (bool, error)
 	manifestWorkName(addonNamespace, addonName string) string
 	preDeleteHookManifestWorkName(addonNamespace, addonName string) string
 }
@@ -164,7 +167,12 @@ type manifestProcessor interface {
 type hostingManifest struct {
 }
 
-func (m *hostingManifest) deployable(installMode string, obj runtime.Object) (bool, error) {
+func (m *hostingManifest) deployable(hostedModeEnabled bool, installMode string, obj runtime.Object) (bool, error) {
+	if !hostedModeEnabled {
+		// hosted mode disabled, will not deploy any resource on the hosting cluster
+		return false, nil
+	}
+
 	accessor, err := meta.Accessor(obj)
 	if err != nil {
 		return false, nil
@@ -199,7 +207,12 @@ func (m *hostingManifest) preDeleteHookManifestWorkName(addonNamespace, addonNam
 type managedManifest struct {
 }
 
-func (m *managedManifest) deployable(installMode string, obj runtime.Object) (bool, error) {
+func (m *managedManifest) deployable(hostedModeEnabled bool, installMode string, obj runtime.Object) (bool, error) {
+	if !hostedModeEnabled {
+		// hosted mode disabled, will deploy all resources on the managed cluster
+		return true, nil
+	}
+
 	accessor, err := meta.Accessor(obj)
 	if err != nil {
 		return false, nil
@@ -250,7 +263,7 @@ func (b *manifestWorkBuiler) buildManifestWorkFromObject(
 			return nil, nil, err
 		}
 
-		deployable, err := b.processor.deployable(installMode, object)
+		deployable, err := b.processor.deployable(b.hostedModeEnabled, installMode, object)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -352,7 +365,7 @@ func deleteWork(
 		if errors.IsNotFound(err) {
 			return nil
 		}
-		return nil
+		return err
 	}
 
 	return nil

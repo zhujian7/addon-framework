@@ -21,15 +21,34 @@ import (
 	clusterv1informers "open-cluster-management.io/api/client/cluster/informers/externalversions"
 	fakework "open-cluster-management.io/api/client/work/clientset/versioned/fake"
 	workinformers "open-cluster-management.io/api/client/work/informers/externalversions"
+	clusterv1 "open-cluster-management.io/api/cluster/v1"
 	workapiv1 "open-cluster-management.io/api/work/v1"
 )
+
+type testHostedAgent struct {
+	name    string
+	objects []runtime.Object
+	err     error
+}
+
+func (t *testHostedAgent) Manifests(cluster *clusterv1.ManagedCluster, addon *addonapiv1alpha1.ManagedClusterAddOn) (
+	[]runtime.Object, error) {
+	return t.objects, t.err
+}
+
+func (t *testHostedAgent) GetAgentAddonOptions() agent.AgentAddonOptions {
+	return agent.AgentAddonOptions{
+		AddonName:         t.name,
+		HostedModeEnabled: true,
+	}
+}
 
 func TestHostingReconcile(t *testing.T) {
 	cases := []struct {
 		name                 string
 		existingWork         []runtime.Object
 		addon                []runtime.Object
-		testaddon            *testAgent
+		testaddon            *testHostedAgent
 		cluster              []runtime.Object
 		validateAddonActions func(t *testing.T, actions []clienttesting.Action)
 		validateWorkActions  func(t *testing.T, actions []clienttesting.Action)
@@ -41,7 +60,7 @@ func TestHostingReconcile(t *testing.T) {
 			existingWork:         []runtime.Object{},
 			validateAddonActions: addontesting.AssertNoActions,
 			validateWorkActions:  addontesting.AssertNoActions,
-			testaddon: &testAgent{name: "test", objects: []runtime.Object{
+			testaddon: &testHostedAgent{name: "test", objects: []runtime.Object{
 				addontesting.NewUnstructured("v1", "ConfigMap", "default", "test"),
 			}},
 		},
@@ -52,7 +71,7 @@ func TestHostingReconcile(t *testing.T) {
 			existingWork:         []runtime.Object{},
 			validateAddonActions: addontesting.AssertNoActions,
 			validateWorkActions:  addontesting.AssertNoActions,
-			testaddon: &testAgent{name: "test", objects: []runtime.Object{
+			testaddon: &testHostedAgent{name: "test", objects: []runtime.Object{
 				addontesting.NewUnstructured("v1", "ConfigMap", "default", "test"),
 			}},
 		},
@@ -79,7 +98,7 @@ func TestHostingReconcile(t *testing.T) {
 				}
 			},
 			validateWorkActions: addontesting.AssertNoActions,
-			testaddon: &testAgent{name: "test", objects: []runtime.Object{
+			testaddon: &testHostedAgent{name: "test", objects: []runtime.Object{
 				addontesting.NewUnstructured("v1", "ConfigMap", "default", "test"),
 			}},
 		},
@@ -112,7 +131,7 @@ func TestHostingReconcile(t *testing.T) {
 				}
 			},
 			validateWorkActions: addontesting.AssertNoActions,
-			testaddon: &testAgent{name: "test", objects: []runtime.Object{
+			testaddon: &testHostedAgent{name: "test", objects: []runtime.Object{
 				addontesting.NewUnstructured("v1", "ConfigMap", "default", "test"),
 			}},
 		},
@@ -122,7 +141,7 @@ func TestHostingReconcile(t *testing.T) {
 			existingWork:         []runtime.Object{},
 			validateAddonActions: addontesting.AssertNoActions,
 			validateWorkActions:  addontesting.AssertNoActions,
-			testaddon: &testAgent{name: "test", objects: []runtime.Object{
+			testaddon: &testHostedAgent{name: "test", objects: []runtime.Object{
 				addontesting.NewUnstructured("v1", "ConfigMap", "default", "test"),
 			}},
 		},
@@ -133,7 +152,7 @@ func TestHostingReconcile(t *testing.T) {
 			existingWork:         []runtime.Object{},
 			validateAddonActions: addontesting.AssertNoActions,
 			validateWorkActions:  addontesting.AssertNoActions,
-			testaddon: &testAgent{name: "test", objects: []runtime.Object{
+			testaddon: &testHostedAgent{name: "test", objects: []runtime.Object{
 				addontesting.NewUnstructured("v1", "ConfigMap", "default", "test"),
 			}},
 		},
@@ -144,7 +163,7 @@ func TestHostingReconcile(t *testing.T) {
 				addontesting.NewManagedCluster("cluster1"),
 				addontesting.NewManagedCluster("cluster2"),
 			},
-			testaddon: &testAgent{name: "test", objects: []runtime.Object{
+			testaddon: &testHostedAgent{name: "test", objects: []runtime.Object{
 				addontesting.NewHostingUnstructured("v1", "ConfigMap", "default", "test"),
 			}},
 			validateAddonActions: func(t *testing.T, actions []clienttesting.Action) {
@@ -177,7 +196,7 @@ func TestHostingReconcile(t *testing.T) {
 				addontesting.NewManagedCluster("cluster1"),
 				addontesting.NewManagedCluster("cluster2"),
 			},
-			testaddon: &testAgent{name: "test", objects: []runtime.Object{
+			testaddon: &testHostedAgent{name: "test", objects: []runtime.Object{
 				addontesting.NewHostingUnstructured("v1", "ConfigMap", "default", "test"),
 				addontesting.NewHostingUnstructured("v1", "Deployment", "default", "test"),
 			}},
@@ -222,7 +241,7 @@ func TestHostingReconcile(t *testing.T) {
 				addontesting.NewManagedCluster("cluster1"),
 				addontesting.NewManagedCluster("cluster2"),
 			},
-			testaddon: &testAgent{name: "test", objects: []runtime.Object{
+			testaddon: &testHostedAgent{name: "test", objects: []runtime.Object{
 				addontesting.NewHostingUnstructured("v1", "ConfigMap", "default", "test"),
 				addontesting.NewHostingUnstructured("v1", "Deployment", "default", "test"),
 			}},
@@ -265,7 +284,7 @@ func TestHostingReconcile(t *testing.T) {
 				addontesting.NewManagedCluster("cluster1"),
 				addontesting.NewManagedCluster("cluster2"),
 			},
-			testaddon: &testAgent{
+			testaddon: &testHostedAgent{
 				name: "test",
 				objects: []runtime.Object{
 					addontesting.NewHostingUnstructured("v1", "ConfigMap", "default", "test"),
@@ -314,7 +333,7 @@ func TestHostingReconcile(t *testing.T) {
 				addontesting.NewManagedCluster("cluster1"),
 				addontesting.NewManagedCluster("cluster2"),
 			},
-			testaddon: &testAgent{name: "test", objects: []runtime.Object{
+			testaddon: &testHostedAgent{name: "test", objects: []runtime.Object{
 				addontesting.NewHostingUnstructured("v1", "ConfigMap", "default", "test"),
 				addontesting.NewHostingUnstructured("v1", "Deployment", "default", "test"),
 			}},

@@ -162,8 +162,8 @@ func (c *addonDeployController) sync(ctx context.Context, syncCtx factory.SyncCo
 		return nil
 	}
 
-	work, _, err := newManagedManifestWorkBuilder().buildManifestWorkFromObject(
-		clusterName, managedClusterAddon, objects)
+	work, _, err := newManagedManifestWorkBuilder(agentAddon.GetAgentAddonOptions().HostedModeEnabled).
+		buildManifestWorkFromObject(clusterName, managedClusterAddon, objects)
 	if err != nil {
 		meta.SetStatusCondition(&managedClusterAddonCopy.Status.Conditions, metav1.Condition{
 			Type:    constants.AddonManifestApplied,
