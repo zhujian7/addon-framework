@@ -1,11 +1,13 @@
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: helloworld-agent
+  name: helloworld-agent-{{ .AddonInstallNamespace }}
+  labels:
+    addon.open-cluster-management.io/hosted-manifest-location: none
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: cluster-admin
+  name: helloworld-agent
 subjects:
   - kind: ServiceAccount
     name: helloworld-agent-sa

@@ -16,6 +16,10 @@ import (
 	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 )
 
+const (
+	helloWorldHostedAddonName = "helloworldhosted"
+)
+
 var _ = ginkgo.Describe("install/uninstall helloworld addons in Hosted mode", func() {
 	var addonAgentNamespace = "managed"
 	ginkgo.BeforeEach(func() {
@@ -52,7 +56,7 @@ var _ = ginkgo.Describe("install/uninstall helloworld addons in Hosted mode", fu
 	ginkgo.It("Install/uninstall addon in hosted mode and make sure it is available", func() {
 		gomega.Eventually(func() error {
 			addon, err := hubAddOnClient.AddonV1alpha1().ManagedClusterAddOns(hostedManagedClusterName).Get(
-				context.Background(), addonName, metav1.GetOptions{})
+				context.Background(), helloWorldHostedAddonName, metav1.GetOptions{})
 			if err != nil {
 				if errors.IsNotFound(err) {
 					_, cerr := hubAddOnClient.AddonV1alpha1().ManagedClusterAddOns(hostedManagedClusterName).Create(
@@ -60,7 +64,7 @@ var _ = ginkgo.Describe("install/uninstall helloworld addons in Hosted mode", fu
 						&addonapiv1alpha1.ManagedClusterAddOn{
 							ObjectMeta: metav1.ObjectMeta{
 								Namespace: hostedManagedClusterName,
-								Name:      addonName,
+								Name:      helloWorldHostedAddonName,
 								Annotations: map[string]string{
 									constants.HostingClusterNameAnnotation: hostingClusterName,
 								},
@@ -92,7 +96,7 @@ var _ = ginkgo.Describe("install/uninstall helloworld addons in Hosted mode", fu
 		addonSecret := corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: addonAgentNamespace,
-				Name:      fmt.Sprintf("%s-managed-kubeconfig", addonName),
+				Name:      fmt.Sprintf("%s-managed-kubeconfig", helloWorldHostedAddonName),
 			},
 			Data: klusterletSecret.Data,
 		}
@@ -104,7 +108,7 @@ var _ = ginkgo.Describe("install/uninstall helloworld addons in Hosted mode", fu
 
 		gomega.Eventually(func() error {
 			addon, err := hubAddOnClient.AddonV1alpha1().ManagedClusterAddOns(hostedManagedClusterName).Get(
-				context.Background(), addonName, metav1.GetOptions{})
+				context.Background(), helloWorldHostedAddonName, metav1.GetOptions{})
 			if err != nil {
 				return err
 			}
@@ -152,12 +156,12 @@ var _ = ginkgo.Describe("install/uninstall helloworld addons in Hosted mode", fu
 
 		// remove addon
 		err = hubAddOnClient.AddonV1alpha1().ManagedClusterAddOns(hostedManagedClusterName).Delete(
-			context.Background(), addonName, metav1.DeleteOptions{})
+			context.Background(), helloWorldHostedAddonName, metav1.DeleteOptions{})
 		gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
 		gomega.Eventually(func() bool {
 			_, err := hubAddOnClient.AddonV1alpha1().ManagedClusterAddOns(hostedManagedClusterName).Get(
-				context.Background(), addonName, metav1.GetOptions{})
+				context.Background(), helloWorldHostedAddonName, metav1.GetOptions{})
 			return errors.IsNotFound(err)
 		}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
 	})

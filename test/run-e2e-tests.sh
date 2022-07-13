@@ -149,6 +149,9 @@ echo "managed cluster context is: ${cluster_context_managed}"
 # scale replicas to 1 to save resources
 ${KUBECTL} --context="${cluster_context_managed}" -n kube-system scale --replicas=1 deployment/coredns
 
+echo "###### loading image: ${EXAMPLE_IMAGE_NAME}"
+${KIND} load docker-image ${EXAMPLE_IMAGE_NAME} --name ${HOSTED_MANAGED_CLUSTER_NAME}
+
 echo "###### prepare bootstrap hub and external managed kubeconfig for hosted cluster"
 ${KIND} get kubeconfig --name=${HOSTED_MANAGED_CLUSTER_NAME} --internal > "${WORK_DIR}"/e2e-managed-kubeconfig
 ${KIND} get kubeconfig --name=${HOSTED_MANAGED_CLUSTER_NAME} > "${WORK_DIR}"/e2e-managed-kubeconfig-public
@@ -226,6 +229,8 @@ ${KUBECTL} set image -n open-cluster-management deployment/helloworld-controller
   helloworld-controller="${EXAMPLE_IMAGE_NAME}"
 ${KUBECTL} set image -n open-cluster-management deployment/helloworldhelm-controller \
   helloworldhelm-controller="${EXAMPLE_IMAGE_NAME}"
+${KUBECTL} set image -n open-cluster-management deployment/helloworldhosted-controller \
+  helloworldhosted-controller="${EXAMPLE_IMAGE_NAME}"
 
 # start the e2e test
 "${REPO_DIR}"/e2e.test -test.v -ginkgo.v
