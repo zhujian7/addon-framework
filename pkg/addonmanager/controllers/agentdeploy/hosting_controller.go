@@ -110,6 +110,7 @@ func NewAddonHostingDeployController(
 		WithSync(c.sync).ToController("addon-hosting-deploy-controller")
 }
 
+// TODO: refactoring to reduce duplication of code
 func (c *addonHostingDeployController) sync(ctx context.Context, syncCtx factory.SyncContext, key string) error {
 	klog.V(4).Infof("Reconciling addon hosting deploy %q", key)
 
@@ -311,13 +312,21 @@ func (c *addonHostingDeployController) cleanup(
 }
 
 // findHostingCluster try to get the hosting cluster name by the manifestwork labels
+// TODO: consider to use the index informor to get the manifestwork
+/*
+	const ByAddonKey = "IndexByAddon"
+ 	workInformers.Work().V1().ManifestWorks().Informer().AddIndexers(map[string]cache.IndexFunc{
+		ByAddonKey: func(obj interface{}) ([]string, error) {
+			for _, label := range obj.(*workapiv1.ManifestWork).Labels {
+				...
+			}
+			return []string{}, nil
+		},
+	})
+
+	workInformers.Work().V1().ManifestWorks().Informer().GetIndexer().ByIndex(ByAddonKey,"addonKeyValue")
+*/
 func (c *addonHostingDeployController) findHostingCluster(addonNamespace, addonName string) (string, error) {
-
-	mcs, err := c.managedClusterLister.List(labels.NewSelector())
-	if err != nil {
-		return "", fmt.Errorf("list managed clusters error: %s", err)
-	}
-
 	nsReq, err := labels.NewRequirement(constants.AddonNamespaceLabel, selection.Equals, []string{addonNamespace})
 	if err != nil {
 		return "", fmt.Errorf("new namespace requirement for addon %s/%s error: %s", addonNamespace, addonName, err)
@@ -327,16 +336,13 @@ func (c *addonHostingDeployController) findHostingCluster(addonNamespace, addonN
 		return "", fmt.Errorf("new name requirement for addon %s/%s error: %s", addonNamespace, addonName, err)
 	}
 
-	for _, mc := range mcs {
-		mws, err := c.workLister.ManifestWorks(mc.Name).List(labels.NewSelector().Add(*nsReq, *nameReq))
-		if err != nil {
-			return "", fmt.Errorf("list manifestwork in namespace %s for addon %s/%s error: %s",
-				mc.Name, addonNamespace, addonName, err)
-		}
-		for _, mw := range mws {
-			if mw.Name == constants.DeployHostingWorkName(addonNamespace, addonName) {
-				return mc.Name, nil
-			}
+	mws, err := c.workLister.ManifestWorks(metav1.NamespaceAll).List(labels.NewSelector().Add(*nsReq, *nameReq))
+	if err != nil {
+		return "", fmt.Errorf("list manifestwork for addon %s/%s error: %s", addonNamespace, addonName, err)
+	}
+	for _, mw := range mws {
+		if mw.Name == constants.DeployHostingWorkName(addonNamespace, addonName) {
+			return mw.Namespace, nil
 		}
 	}
 
