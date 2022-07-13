@@ -179,7 +179,7 @@ func (m *hostingManifest) deployable(installMode string, obj runtime.Object) (bo
 		return false, nil
 	}
 
-	if exist && location == constants.HostedManifestLocationHosting {
+	if exist && location == constants.HostedManifestLocationHostingLabelValue {
 		klog.V(4).Infof("will deploy the manifest %s/%s on the hosting cluster in Hosted mode",
 			accessor.GetNamespace(), accessor.GetName())
 		return true, nil
@@ -219,7 +219,7 @@ func (m *managedManifest) deployable(installMode string, obj runtime.Object) (bo
 		return true, nil
 	}
 
-	if !exist || location == constants.HostedManifestLocationManaged {
+	if !exist || location == constants.HostedManifestLocationManagedLabelValue {
 		klog.V(4).Infof("will deploy the manifest %s/%s on the managed cluster in Hosted mode",
 			accessor.GetNamespace(), accessor.GetName())
 		return true, nil
@@ -245,7 +245,7 @@ func (m *managedManifest) mutateManifest(installMode string, rawObject []byte) (
 		if labels == nil {
 			labels = make(map[string]string)
 		}
-		labels[constants.HostedManifestLocationLabel] = constants.HostedManifestLocationManaged
+		labels[constants.HostedManifestLocationLabelKey] = constants.HostedManifestLocationManagedLabelValue
 		unstructuredObj.SetLabels(labels)
 		rawObject, err = unstructuredObj.MarshalJSON()
 		if err != nil {

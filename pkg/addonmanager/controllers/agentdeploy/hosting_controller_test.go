@@ -93,13 +93,9 @@ func TestHostingReconcile(t *testing.T) {
 			existingWork: []runtime.Object{},
 			validateAddonActions: func(t *testing.T, actions []clienttesting.Action) {
 				// Update addon condition
-				addontesting.AssertActions(t, actions, "patch", "update")
-				patch := actions[0].(clienttesting.PatchActionImpl).Patch
-				addOn := &addonapiv1alpha1.ManagedClusterAddOn{}
-				err := json.Unmarshal(patch, addOn)
-				if err != nil {
-					t.Fatal(err)
-				}
+				addontesting.AssertActions(t, actions, "update")
+				update := actions[0].(clienttesting.UpdateActionImpl).Object
+				addOn := update.(*addonapiv1alpha1.ManagedClusterAddOn)
 				addOnCond := meta.FindStatusCondition(addOn.Status.Conditions, constants.HostingClusterValidity)
 				if addOnCond == nil {
 					t.Fatal("condition should not be nil")
@@ -108,8 +104,6 @@ func TestHostingReconcile(t *testing.T) {
 					t.Errorf("Condition Reason is not correct: %v", addOnCond.Reason)
 				}
 
-				update := actions[1].(clienttesting.UpdateActionImpl).Object
-				addOn = update.(*addonapiv1alpha1.ManagedClusterAddOn)
 				if len(addOn.Finalizers) != 1 {
 					t.Errorf("expected 1 finalizer, but got %v", len(addOn.Finalizers))
 				}
@@ -154,11 +148,11 @@ func TestHostingReconcile(t *testing.T) {
 				addontesting.NewHostingUnstructured("v1", "ConfigMap", "default", "test"),
 			}},
 			validateAddonActions: func(t *testing.T, actions []clienttesting.Action) {
-				addontesting.AssertActions(t, actions, "patch", "patch")
+				addontesting.AssertActions(t, actions, "patch")
 
 				assertHostingClusterValid(t, actions[0])
 
-				patch := actions[1].(clienttesting.PatchActionImpl).Patch
+				patch := actions[0].(clienttesting.PatchActionImpl).Patch
 				addOn := &addonapiv1alpha1.ManagedClusterAddOn{}
 				err := json.Unmarshal(patch, addOn)
 				if err != nil {
@@ -206,11 +200,11 @@ func TestHostingReconcile(t *testing.T) {
 				addontesting.AssertActions(t, actions, "patch")
 			},
 			validateAddonActions: func(t *testing.T, actions []clienttesting.Action) {
-				addontesting.AssertActions(t, actions, "patch", "patch")
+				addontesting.AssertActions(t, actions, "patch")
 
 				assertHostingClusterValid(t, actions[0])
 
-				patch := actions[1].(clienttesting.PatchActionImpl).Patch
+				patch := actions[0].(clienttesting.PatchActionImpl).Patch
 				addOn := &addonapiv1alpha1.ManagedClusterAddOn{}
 				err := json.Unmarshal(patch, addOn)
 				if err != nil {
@@ -249,11 +243,11 @@ func TestHostingReconcile(t *testing.T) {
 			}()},
 			validateWorkActions: addontesting.AssertNoActions,
 			validateAddonActions: func(t *testing.T, actions []clienttesting.Action) {
-				addontesting.AssertActions(t, actions, "patch", "patch")
+				addontesting.AssertActions(t, actions, "patch")
 
 				assertHostingClusterValid(t, actions[0])
 
-				patch := actions[1].(clienttesting.PatchActionImpl).Patch
+				patch := actions[0].(clienttesting.PatchActionImpl).Patch
 				addOn := &addonapiv1alpha1.ManagedClusterAddOn{}
 				err := json.Unmarshal(patch, addOn)
 				if err != nil {
@@ -295,11 +289,11 @@ func TestHostingReconcile(t *testing.T) {
 			}()},
 			validateWorkActions: addontesting.AssertNoActions,
 			validateAddonActions: func(t *testing.T, actions []clienttesting.Action) {
-				addontesting.AssertActions(t, actions, "patch", "patch")
+				addontesting.AssertActions(t, actions, "patch")
 
 				assertHostingClusterValid(t, actions[0])
 
-				patch := actions[1].(clienttesting.PatchActionImpl).Patch
+				patch := actions[0].(clienttesting.PatchActionImpl).Patch
 				addOn := &addonapiv1alpha1.ManagedClusterAddOn{}
 				err := json.Unmarshal(patch, addOn)
 				if err != nil {
@@ -343,11 +337,8 @@ func TestHostingReconcile(t *testing.T) {
 				addontesting.AssertActions(t, actions, "delete")
 			},
 			validateAddonActions: func(t *testing.T, actions []clienttesting.Action) {
-				addontesting.AssertActions(t, actions, "patch", "update")
-
-				assertHostingClusterValid(t, actions[0])
-
-				update := actions[1].(clienttesting.UpdateActionImpl).Object
+				addontesting.AssertActions(t, actions, "update")
+				update := actions[0].(clienttesting.UpdateActionImpl).Object
 				addOn := update.(*addonapiv1alpha1.ManagedClusterAddOn)
 				if hasFinalizer(addOn.Finalizers, constants.HostingManifestFinalizer) {
 					t.Errorf("expected hosting manifest finalizer")

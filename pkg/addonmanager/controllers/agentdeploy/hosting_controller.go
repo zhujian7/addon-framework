@@ -183,10 +183,6 @@ func (c *addonHostingDeployController) sync(ctx context.Context, syncCtx factory
 		Reason:  constants.HostingClusterValidityReasonValid,
 		Message: fmt.Sprintf("hosting cluster %s is a managed cluster of the hub", hostingClusterName),
 	})
-	if pErr := utils.PatchAddonCondition(
-		ctx, c.addonClient, managedClusterAddonCopy, managedClusterAddon); pErr != nil {
-		return fmt.Errorf("failed to update managedclusteraddon status: %v; the err should be %v", pErr, err)
-	}
 
 	if !managedClusterAddon.DeletionTimestamp.IsZero() {
 		return c.cleanup(ctx, managedClusterAddonCopy, hostingClusterName)

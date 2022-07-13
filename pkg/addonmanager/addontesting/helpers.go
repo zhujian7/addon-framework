@@ -61,7 +61,7 @@ func NewHostingUnstructured(apiVersion, kind, namespace, name string) *unstructu
 	}
 
 	u.SetLabels(map[string]string{
-		constants.HostedManifestLocationLabel: constants.HostedManifestLocationHosting,
+		constants.HostedManifestLocationLabelKey: constants.HostedManifestLocationHostingLabelValue,
 	})
 	return u
 }
@@ -83,7 +83,7 @@ func NewHostedModeAddon(name, namespace string, hostingCluster string,
 			Name:            name,
 			Namespace:       namespace,
 			OwnerReferences: owners,
-			Annotations:     map[string]string{constants.HostingClusterNameAnnotation: hostingCluster},
+			Annotations:     map[string]string{constants.HostingClusterNameAnnotationKey: hostingCluster},
 		},
 	}
 }

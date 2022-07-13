@@ -140,7 +140,7 @@ var _ = ginkgo.Describe("Agent deploy", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: testAddonImpl.name,
 				Annotations: map[string]string{
-					constants.HostingClusterNameAnnotation: hostingClusterName,
+					constants.HostingClusterNameAnnotationKey: hostingClusterName,
 				},
 			},
 			Spec: addonapiv1alpha1.ManagedClusterAddOnSpec{
@@ -244,7 +244,7 @@ var _ = ginkgo.Describe("Agent deploy", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: testAddonImpl.name,
 				Annotations: map[string]string{
-					constants.HostingClusterNameAnnotation: hostingClusterName,
+					constants.HostingClusterNameAnnotationKey: hostingClusterName,
 				},
 			},
 			Spec: addonapiv1alpha1.ManagedClusterAddOnSpec{

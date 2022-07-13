@@ -36,27 +36,27 @@ const (
 	// AddonHookManifestCompleted is a condition type representing whether the addon hook is completed.
 	AddonHookManifestCompleted = "HookManifestCompleted"
 
-	// // HostingClusterManifestLabel is the annotation for indicating the manifest should be deployed on the
-	// // hosting cluster
-	// HostingClusterManifestLabel = "addon.open-cluster-management.io/hosting-cluster-manifest"
-
+	// InstallModeBuiltinValueKey is the key of the build in value to represent the addon install mode, addon developers
+	// can use this built in value in manifests.
 	InstallModeBuiltinValueKey = "InstallMode"
 	InstallModeHosted          = "Hosted"
 	InstallModeDefault         = "Default"
 
-	// HostingClusterNameAnnotation is the annotation for indicating the hosting cluster name
-	HostingClusterNameAnnotation = "addon.open-cluster-management.io/hosting-cluster-name"
+	// HostingClusterNameAnnotationKey is the annotation key for indicating the hosting cluster name
+	HostingClusterNameAnnotationKey = "addon.open-cluster-management.io/hosting-cluster-name"
 
-	// HostedManifestLocationLabel is the label for indicating where the manifest should be deployed in Hosted mode
-	HostedManifestLocationLabel = "addon.open-cluster-management.io/hosted-manifest-location"
+	// HostedManifestLocationLabelKey is the label key for indicating where the manifest should be deployed in Hosted
+	// mode
+	HostedManifestLocationLabelKey = "addon.open-cluster-management.io/hosted-manifest-location"
 
-	// HostedManifestLocationManaged indicates the manifest will be deployed on the managed cluster in Hosted mode, it
-	// is the default value of a manifest in Hosted mode
-	HostedManifestLocationManaged = "managed"
-	// HostedManifestLocationHosting indicates the manifest will be deployed on the hosting cluster in Hosted mode
-	HostedManifestLocationHosting = "hosting"
-	// HostedManifestLocationNone indicates the manifest will not be deployed in Hosted mode
-	HostedManifestLocationNone = "none"
+	// HostedManifestLocationManagedLabelValue indicates the manifest will be deployed on the managed cluster in Hosted
+	// mode, it is the default value of a manifest in Hosted mode
+	HostedManifestLocationManagedLabelValue = "managed"
+	// HostedManifestLocationHostingLabelValue indicates the manifest will be deployed on the hosting cluster in Hosted
+	// mode
+	HostedManifestLocationHostingLabelValue = "hosting"
+	// HostedManifestLocationNoneLabelValue indicates the manifest will not be deployed in Hosted mode
+	HostedManifestLocationNoneLabelValue = "none"
 
 	// HostingManifestFinalizer is the finalizer for an addon which has deployed manifests on the external
 	// hosting cluster in Hosted mode
@@ -90,7 +90,7 @@ func DeployHostingWorkName(addonNamespace, addonName string) string {
 
 // GetHostedModeInfo returns addon installation mode and hosting cluster name.
 func GetHostedModeInfo(annotations map[string]string) (string, string) {
-	hostingClusterName, ok := annotations[HostingClusterNameAnnotation]
+	hostingClusterName, ok := annotations[HostingClusterNameAnnotationKey]
 	if !ok {
 		return InstallModeDefault, ""
 	}
@@ -100,13 +100,15 @@ func GetHostedModeInfo(annotations map[string]string) (string, string) {
 
 // GetHostedManifestLocation returns the location of the manifest in Hosted mode, if it is invalid will return error
 func GetHostedManifestLocation(labels map[string]string) (string, bool, error) {
-	manifestLocation, ok := labels[HostedManifestLocationLabel]
+	manifestLocation, ok := labels[HostedManifestLocationLabelKey]
 	if !ok {
 		return "", false, nil
 	}
 
 	switch manifestLocation {
-	case HostedManifestLocationManaged, HostedManifestLocationHosting, HostedManifestLocationNone:
+	case HostedManifestLocationManagedLabelValue,
+		HostedManifestLocationHostingLabelValue,
+		HostedManifestLocationNoneLabelValue:
 		return manifestLocation, true, nil
 	default:
 		return "", true, fmt.Errorf("not supported manifest location: %s", manifestLocation)
