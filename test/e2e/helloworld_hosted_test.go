@@ -21,22 +21,11 @@ const (
 )
 
 var _ = ginkgo.Describe("install/uninstall helloworld addons in Hosted mode", func() {
-	var addonAgentNamespace = "managed"
+	var addonAgentNamespace string
 	ginkgo.BeforeEach(func() {
-		// addonAgentNamespace = fmt.Sprintf("klusterlet-%s-agent-addon", hostingClusterName)
-		_, err := hostedManagedKubeClient.CoreV1().Namespaces().Get(
-			context.Background(), addonAgentNamespace, metav1.GetOptions{})
-		if errors.IsNotFound(err) {
-			_, err = hostedManagedKubeClient.CoreV1().Namespaces().Create(
-				context.Background(), &corev1.Namespace{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: addonAgentNamespace,
-					},
-				}, metav1.CreateOptions{})
-			gomega.Expect(err).ToNot(gomega.HaveOccurred())
-		}
+		addonAgentNamespace = fmt.Sprintf("klusterlet-%s-agent-addon", hostingClusterName)
 
-		_, err = hubClusterClient.ClusterV1().ManagedClusters().Get(
+		_, err := hubClusterClient.ClusterV1().ManagedClusters().Get(
 			context.Background(), hostedManagedClusterName, metav1.GetOptions{})
 		gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
