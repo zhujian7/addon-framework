@@ -301,13 +301,13 @@ func (c *addonHostingDeployController) cleanup(
 		}
 	}
 
-	c.cache.removeCache(constants.DeployHostingWorkName(mca.Namespace, mca.Name), hostingClusterName)
-
 	err = deleteWork(ctx, c.workClient, hostingClusterName,
 		constants.DeployHostingWorkName(mca.Namespace, mca.Name))
 	if err != nil {
 		return err
 	}
+
+	c.cache.removeCache(constants.DeployHostingWorkName(mca.Namespace, mca.Name), hostingClusterName)
 
 	finalizer := removeFinalizer(mca.Finalizers, constants.HostingManifestFinalizer)
 	mca.SetFinalizers(finalizer)

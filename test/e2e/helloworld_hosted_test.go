@@ -20,7 +20,7 @@ const (
 	helloWorldHostedAddonName = "helloworldhosted"
 )
 
-var _ = ginkgo.Describe("install/uninstall helloworld addons in Hosted mode", func() {
+var _ = ginkgo.Describe("install/uninstall helloworld hosted addons in Hosted mode", func() {
 	var addonAgentNamespace string
 	ginkgo.BeforeEach(func() {
 		addonAgentNamespace = fmt.Sprintf("klusterlet-%s-agent-addon", hostingClusterName)
