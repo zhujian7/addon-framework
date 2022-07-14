@@ -16,8 +16,9 @@ import (
 	"k8s.io/component-base/logs"
 	"k8s.io/klog/v2"
 	"open-cluster-management.io/addon-framework/examples/cmdfactory"
+	helloworld "open-cluster-management.io/addon-framework/examples/helloworld"
 	"open-cluster-management.io/addon-framework/examples/helloworld/agent"
-	helloworld "open-cluster-management.io/addon-framework/examples/helloworld_hosted"
+	"open-cluster-management.io/addon-framework/examples/helloworld_hosted"
 	"open-cluster-management.io/addon-framework/pkg/addonfactory"
 	"open-cluster-management.io/addon-framework/pkg/version"
 
@@ -59,7 +60,7 @@ func newCommand() *cobra.Command {
 	}
 
 	cmd.AddCommand(newControllerCommand())
-	cmd.AddCommand(agent.NewAgentCommand(helloworld.AddonName))
+	cmd.AddCommand(agent.NewAgentCommand(helloworld_hosted.AddonName))
 
 	return cmd
 }
@@ -81,10 +82,11 @@ func runController(ctx context.Context, kubeConfig *rest.Config) error {
 	}
 	registrationOption := helloworld.NewRegistrationOption(
 		kubeConfig,
-		helloworld.AddonName,
+		helloworld_hosted.AddonName,
 		utilrand.String(5))
 
-	agentAddon, err := addonfactory.NewAgentAddonFactory(helloworld.AddonName, helloworld.FS, "manifests/templates").
+	agentAddon, err := addonfactory.NewAgentAddonFactory(
+		helloworld_hosted.AddonName, helloworld_hosted.FS, "manifests/templates").
 		WithGetValuesFuncs(helloworld.GetValues, addonfactory.GetValuesFromAddonAnnotation).
 		WithAgentRegistrationOption(registrationOption).
 		WithAgentHostedModeEnabledOption().

@@ -1,22 +1,22 @@
 kind: Deployment
 apiVersion: apps/v1
 metadata:
-  name: helloworld-agent
+  name: helloworldhosted-agent
   namespace: {{ .AddonInstallNamespace }}
   labels:
-    app: helloworld-agent
+    app: helloworldhosted-agent
     addon.open-cluster-management.io/hosted-manifest-location: hosting
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: helloworld-agent
+      app: helloworldhosted-agent
   template:
     metadata:
       labels:
-        app: helloworld-agent
+        app: helloworldhosted-agent
     spec:
-      serviceAccountName: helloworld-agent-sa
+      serviceAccountName: helloworldhosted-agent-sa
       volumes:
       - name: hub-config
         secret:
@@ -27,7 +27,7 @@ spec:
           secretName: {{ .ManagedKubeConfigSecret }}
       {{- end }}
       containers:
-      - name: helloworld-agent
+      - name: helloworldhosted-agent
         image: {{ .Image }}
         imagePullPolicy: IfNotPresent
         args:
