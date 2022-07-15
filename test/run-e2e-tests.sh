@@ -39,8 +39,8 @@ KIND="${WORK_DIR}/bin/kind"
 KUBE_VERSION="v1.20.2"
 KUBECTL="${WORK_DIR}/bin/kubectl"
 
-export MANAGED_CLUSTER_NAME="cluster1"
-export HOSTED_MANAGED_CLUSTER_NAME="cluster2"
+export MANAGED_CLUSTER_NAME="hub"
+export HOSTED_MANAGED_CLUSTER_NAME="managed"
 
 mkdir -p "${WORK_DIR}/bin"
 mkdir -p "${WORK_DIR}/config"
@@ -79,7 +79,7 @@ ${KIND} load docker-image ${EXAMPLE_IMAGE_NAME} --name ${MANAGED_CLUSTER_NAME}
 
 echo "###### deploy registration-operator"
 rm -rf "$WORK_DIR/registration-operator"
-git clone https://github.com/stolostron/registration-operator.git "$WORK_DIR/registration-operator"
+git clone https://github.com/open-cluster-management-io/registration-operator.git "$WORK_DIR/registration-operator"
 ${KUBECTL} apply -k "$WORK_DIR/registration-operator/deploy/cluster-manager/config/manifests"
 ${KUBECTL} apply -k "$WORK_DIR/registration-operator/deploy/cluster-manager/config/samples"
 ${KUBECTL} apply -k "$WORK_DIR/registration-operator/deploy/klusterlet/config/manifests"
