@@ -24,6 +24,7 @@ require (
 	open-cluster-management.io/api v0.13.0
 	open-cluster-management.io/sdk-go v0.13.0
 	sigs.k8s.io/controller-runtime v0.17.2
+	sigs.k8s.io/kube-storage-version-migrator v0.0.6-0.20230721195810-5c8923c5ff96
 )
 
 require (
