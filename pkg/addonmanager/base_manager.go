@@ -193,6 +193,7 @@ func (a *BaseAddonManagerImpl) StartWithInformers(ctx context.Context,
 			dynamicInformers,
 			a.addonConfigs,
 			utils.FilterByAddonName(a.addonAgents),
+			mcaFilterFunc,
 		)
 		managementAddonConfigController = cmaconfig.NewCMAConfigController(
 			addonClient,
